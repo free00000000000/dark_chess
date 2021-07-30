@@ -307,16 +307,18 @@ void MyAI::simulation(Node *node) {
 		(*child).WR = (double)(*child).Wins/(*child).Ntotal;
 	}
 
-
 }
 
 void MyAI::randomPlay(Node *node, unsigned int times) {
 	int color;
-	if ((*node).depth%2 == 0) {
+	if ((*node).depth%2 != 0) {
 		color = Color;
 	} else {
 		color = !Color;
 	}
+
+	std::cout << "depth " << node->depth << std::endl;
+	std::cout << "color " << color << std::endl;
 
 	for (unsigned int t=0 ; t<times; ++t) {
 		int count = 0;
@@ -375,6 +377,8 @@ void MyAI::generateMove(char move[6]) {
 	printf("############# Generate Move #############\n");
 
 	printBoard(root.Board);
+	std::cout << "Color " << Color << std::endl;
+	
 	root.depth = 0;
 
 	expansion(&root, Color);
@@ -385,7 +389,7 @@ void MyAI::generateMove(char move[6]) {
 	if (Color != 2) {
 		simulation(&root);
 
-		double best = 0.;
+		double best = -1.;
 		for (auto& child : root.child) {
 			printf("move: (%d, %d) to (%d, %d)  win rate: %.2f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
 			printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
@@ -464,7 +468,7 @@ void MyAI::printBoard(short B[10][6]) {
 		}
 		printf("\n");
 	}
-	printf("  a b c d\n");
+	printf("    a b c d\n");
 	printf("-------------\n");
 
 	fflush(stdout);
