@@ -355,7 +355,7 @@ void MyAI::randomPlay(Node *node, unsigned int times) {
 				break;
 			}
 
-			int id = rand() % (m+f);
+			uint32_t id = randIndex(m+f);
 			if (id < m) {
 				// move
 				MakeMove(moves[id], Board);
@@ -370,7 +370,7 @@ void MyAI::randomPlay(Node *node, unsigned int times) {
 						cover++;
 					}
 				}
-				int p_id = rand() % (cover);
+				uint32_t p_id = randIndex(cover);
 				MakeFlip(flips[id], piece[p_id], Board, chessCover);
 			}
 
@@ -409,7 +409,7 @@ void MyAI::generateMove(char move[6]) {
 		}
 
 	} else {
-		int m = rand() % root.child.size();
+		uint32_t m = randIndex(root.child.size());
 		memcpy(best_move, (*root.child[m]).move, 4*sizeof(short));
 	}
 
@@ -480,4 +480,29 @@ void MyAI::printBoard(short B[10][6]) {
 	printf("-------------\n");
 
 	fflush(stdout);
+}
+
+// return range: [0, max)
+uint32_t MyAI::randIndex(uint32_t max) {
+
+	// range (unbiased)
+	uint32_t mask = ~uint32_t(0);
+	--max;
+	mask >>= __builtin_clz(max|1);
+	uint32_t x;
+	do {
+			x = pcg32_random_r() & mask;
+	} while (x > max);
+
+	return x;
+}
+
+uint32_t MyAI::pcg32_random_r() {
+	uint64_t oldstate = rng.state;
+	// Advance internal state
+	rng.state = oldstate * 6364136223846793005ULL + (rng.inc|1);
+	// Calculate output function (XSH RR), uses old state for max ILP
+	uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
+	uint32_t rot = oldstate >> 59u;
+	return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }

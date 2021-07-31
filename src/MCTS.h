@@ -132,6 +132,10 @@ private:
 	int step;
 	Node root;
 
+	// random
+	uint32_t randIndex(uint32_t max);
+	uint32_t pcg32_random_r();
+
 	// Board
 	void initBoardState();
 
