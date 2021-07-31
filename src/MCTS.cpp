@@ -295,12 +295,19 @@ void MyAI::simulation(Node *node) {
 
 		} else {
 			// flip
+			int total_chess = 0;
+			int W = 0;
 			for (int i=1; i<16; ++i) {
 				if ((*child).chessCover[i] > 0) {
 					(*child).Board[(*child).move[1]][(*child).move[0]] = i;
+					child->Wins = 0;
+					child->Ntotal = 0;
 					randomPlay(child, times);
+					total_chess += child->chessCover[i];
+					W += child->Wins*child->chessCover[i];
 				}
 			}
+			child->Wins = W/total_chess;
 			(*child).Board[(*child).move[1]][(*child).move[0]] = CHESS_COVER;
 		}
 
@@ -310,15 +317,15 @@ void MyAI::simulation(Node *node) {
 }
 
 void MyAI::randomPlay(Node *node, unsigned int times) {
-	int color;
-	if ((*node).depth%2 != 0) {
-		color = Color;
+	int color;  // node 的顏色
+	if ((*node).depth%2 == 0) {
+		color = Color;  // 我方
 	} else {
-		color = !Color;
+		color = !Color;  // 敵方
 	}
 
-	std::cout << "depth " << node->depth << std::endl;
-	std::cout << "color " << color << std::endl;
+	// std::cout << "depth " << node->depth << std::endl;
+	// std::cout << "color " << color << std::endl;
 
 	for (unsigned int t=0 ; t<times; ++t) {
 		int count = 0;
@@ -340,9 +347,10 @@ void MyAI::randomPlay(Node *node, unsigned int times) {
 			short flips[32][4];
 			short f = getFlip(flips, Board, chessCover, 0);  // filp count
 
+			// c 輸
 			if (m==0 & f==0) {
-				// c 輸
-				if (c != color) (*node).Wins += 1;
+				// 當 c != 我方
+				if (c != Color) (*node).Wins += 1;
 				(*node).Ntotal += 1;
 				break;
 			}
