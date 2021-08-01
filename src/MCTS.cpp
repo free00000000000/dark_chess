@@ -158,12 +158,12 @@ void MyAI::initBoardState() {
 
 short MyAI::getMove(short moves[][4], short Board[10][6], int color) {
 	short count = 0;
+	short dx[] = {1, 0, -1, 0};
+	short dy[] = {0, 1, 0, -1};
 	for (int y=1; y<=8; ++y) {
 		for (int x=1; x<=4; ++x) {
 			if (colorTable[Board[y][x]] == color){
 				// move
-				short dx[] = {1, 0, -1, 0};
-				short dy[] = {0, 1, 0, -1};
 				for (int i=0; i<4; ++i) {
 					int next_x = x + dx[i];
 					int next_y = y + dy[i];
@@ -185,7 +185,8 @@ short MyAI::getMove(short moves[][4], short Board[10][6], int color) {
 						int next_y = y + dy[i];
 						bool ready = false;
 						int opColor = !color;
-						while (next_x >= 1 && next_x<=6 && next_y>=1 && next_y <= 6) {
+						while (next_x>=1 && next_x<=4 && next_y>=1 && next_y <= 8) {
+							// printf("(%d, %d)\n", next_x, next_y);
 							if (ready && Board[next_y][next_x] != CHESS_EMPTY) {
 								if (colorTable[Board[next_y][next_x]] == opColor) {
 									moves[count][0] = x;
