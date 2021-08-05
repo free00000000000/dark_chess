@@ -74,6 +74,7 @@ public:
 		memcpy(Board, node.Board, 10*6*sizeof(short));
 		memcpy(chessCover, node.chessCover, 16*sizeof(short));
 		depth = node.depth;
+		isflip = false;
 		Ntotal = 0;
 		Wins = 0;
 		WR = 0;
@@ -151,11 +152,11 @@ private:
 	void printBoard(short B[10][6]);
 
 	// MCTS
-	Node* selection();
-	void expansion(Node *node, short color);
+	Node* selection(Node* node);
+	void expansion(Node *node);
 	void simulation(Node *node);
-	void backpropagation();
-	void randomPlay(Node *node, unsigned int times);
+	void backpropagation(Node *node);
+	void randomPlay(Node *node, short color, unsigned int times);
 	bool isFinish(short Board[10][6]);
 
 	void MakeMove(short move[4], short Board[10][6]);

@@ -3,6 +3,8 @@
 #include "rand.cpp"
 #include <iostream>
 
+#define SIMULATE_COUNT_PER_CHILD 100
+#define TIME_LIMIT 5
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
@@ -252,81 +254,85 @@ void MyAI::legalMove(short moves[][4], short &count, short Board[10][6], int col
 	count = m + f;
 }
 
-void MyAI::expansion(Node *node, short color) {
-	// moves: 4*16+8 [from_x, from_y, to_x, to_y]
-	short moves[72][4];
-	short m = getMove(moves, (*node).Board, color);
-	std::cout << "move count: " << m << std::endl;
-	for (int i=0; i<m; ++i) {
-		Node *next = new Node(*node);
-		// printf("move: (%d, %d) to (%d, %d)\n", moves[i][0], moves[i][1], moves[i][2], moves[i][3]);
-		MakeMove(moves[i], (*next).Board);
-		(*next).depth += 1;
-		memcpy((*next).move, moves[i], 4*sizeof(short));
-		(*next).isflip = false;
-		(*next).parent = node;
-		(*node).child.push_back(next);
-	}
+void MyAI::expansion(Node *node) {
+	assert(node->isflip == false);
 
-	// flips: 32 [x, y, x, y]
-	short flips[32][4];
-	short f = getFlip(flips, (*node).Board, (*node).chessCover, 0);  // filp count
-	std::cout << "flips count: " << f << std::endl;
-	for (int i=0; i<f; ++i) {
-		Node *next = new Node(*node);
-		(*next).depth += 1;
-		memcpy((*next).move, flips[i], 4*sizeof(short));
-		(*next).isflip = true;
-		(*next).parent = node;
-		(*node).child.push_back(next);
-		// std::cout << (*(*node).child[i]).move[0] << ' ' << (*(*node).child[i]).move[1] << std::endl;
-	}
-	std::cout << "end expansion" << std::endl;
-}
-
-void MyAI::simulation(Node *node) {
-
-	unsigned int times = 100;  // 100
-
-	for (auto& child : (*node).child) {
-    // cout << it << endl;
-		if (!(*child).isflip) {
-			// move
-			randomPlay(child, times);
-
-		} else {
-			// flip
-			int total_chess = 0;
-			int W = 0;
-			for (int i=1; i<16; ++i) {
-				if ((*child).chessCover[i] > 0) {
-					(*child).Board[(*child).move[1]][(*child).move[0]] = i;
-					child->Wins = 0;
-					child->Ntotal = 0;
-					randomPlay(child, times);
-					total_chess += child->chessCover[i];
-					W += child->Wins*child->chessCover[i];
-				}
-			}
-			child->Wins = W/total_chess;
-			(*child).Board[(*child).move[1]][(*child).move[0]] = CHESS_COVER;
-		}
-
-		(*child).WR = (double)(*child).Wins/(*child).Ntotal;
-	}
-
-}
-
-void MyAI::randomPlay(Node *node, unsigned int times) {
-	int color;  // node 的顏色
+	short color;  // node 的顏色
 	if ((*node).depth%2 == 0) {
 		color = Color;  // 我方
 	} else {
 		color = !Color;  // 敵方
 	}
 
-	// std::cout << "depth " << node->depth << std::endl;
-	// std::cout << "color " << color << std::endl;
+	// moves: 4*16+8 [from_x, from_y, to_x, to_y]
+	short moves[72][4];
+	short m = getMove(moves, node->Board, color);
+	// std::cout << "move count: " << m << std::endl;
+	for (int i=0; i<m; ++i) {
+		Node *next = new Node(*node);
+		// printf("move: (%d, %d) to (%d, %d)\n", moves[i][0], moves[i][1], moves[i][2], moves[i][3]);
+		MakeMove(moves[i], next->Board);
+		next->depth += 1;
+		memcpy(next->move, moves[i], 4*sizeof(short));
+		next->parent = node;
+		node->child.push_back(next);
+	}
+
+	// flips: 32 [x, y, x, y]
+	short flips[32][4];
+	short f = getFlip(flips, (*node).Board, (*node).chessCover, 0);  // filp count
+	// std::cout << "flips count: " << f << std::endl;
+	for (int i=0; i<f; ++i) {
+		Node *next = new Node(*node);
+		next->depth += 1;
+		memcpy(next->move, flips[i], 4*sizeof(short));
+		// expand next's child
+		for (short j=1; j<16; ++j) {
+			if (next->chessCover[j] > 0) {
+				Node *next_open = new Node(*next);
+				memcpy(next_open->move, next->move, 4*sizeof(short));
+				MakeFlip(next_open->move, j, next_open->Board, next_open->chessCover);
+				next_open->parent = next;
+				next->child.push_back(next_open);
+			}
+		}
+		next->isflip = true;
+		next->parent = node;
+		node->child.push_back(next);
+		// std::cout << (*(*node).child[i]).move[0] << ' ' << (*(*node).child[i]).move[1] << std::endl;
+	}
+
+	std::cout << "end expansion" << std::endl;
+}
+
+
+void MyAI::simulation(Node *node) {
+	assert(node->isflip == false);
+
+	short color;  // node's child 的顏色
+	if (node->depth%2 == 0) {  // 我方
+		color = !Color;  // 敵方
+	} else {
+		color = Color;  // 我方
+	}
+
+	for (auto& child : node->child) {
+    // cout << it << endl;
+		if (!child->isflip) {
+			randomPlay(child, color, SIMULATE_COUNT_PER_CHILD);
+
+		} else {
+			// chance node
+			for (auto& child_child : child->child) {
+				randomPlay(child_child, color, SIMULATE_COUNT_PER_CHILD);
+			}
+		}
+
+	}
+
+}
+
+void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 
 	for (unsigned int t=0 ; t<times; ++t) {
 		int count = 0;
@@ -382,15 +388,104 @@ void MyAI::randomPlay(Node *node, unsigned int times) {
 	}
 }
 
+Node* MyAI::selection(Node* node) {
+	std::cout << "selection" << std::endl;
+	Node* best_node;
+	while (node->child.size() > 0) {
+		double best = -1.;
+
+		if (!node->isflip) {
+			// 非 chance node 選擇
+			for (auto& child : node->child) {
+				if ((*child).WR > best) {
+					best = (*child).WR;
+					best_node = child;
+				}
+			}
+
+		} else {
+			// chance node 隨機翻
+			int cover = 0;
+			int piece[32];
+			int idx = 0;  // child id
+			for (int i=1; i<16; ++i) {
+				if (node->chessCover[i] > 0) {
+					for (int j=0; j<node->chessCover[i]; ++j) {
+						piece[cover] = idx;
+						cover++;
+					}
+					idx++;
+				}
+			}
+			uint32_t c_id = randIndex(cover);
+			best_node = node->child[c_id];
+		}
+
+		node = best_node;
+		printf("move %c (%d, %d) to (%d, %d)  win rate: %.2f\n", toCharTable[node->Board[node->move[3]][node->move[2]]], node->move[0], node->move[1], node->move[2], node->move[3], node->WR);
+
+	}
+	
+	std::cout << "end selection" << std::endl;
+	return node;
+}
+
+void MyAI::backpropagation(Node* node) {
+	if (node->isflip) backpropagation(node->parent);
+
+	for (auto& child : node->child) {
+		if (child->isflip) {  // chance node
+			int c_id = 0;
+			int total_cover = 0;
+			int wins = 0;
+			for (int i=1; i<16; ++i) {
+				if (child->chessCover[i] > 0) {
+					wins += child->child[c_id]->Wins * child->chessCover[i];
+					total_cover += child->chessCover[i];
+					c_id += 1;
+				}
+			}
+			child->Wins = wins/total_cover;
+			child->Ntotal = SIMULATE_COUNT_PER_CHILD;
+		}
+		node->Ntotal += child->Ntotal;
+		node->Wins += child->Wins;
+	}
+
+	if (node == &root) return;
+	backpropagation(node->parent);
+}
+
 void MyAI::generateMove(char move[6]) {
+	clock_t begin = clock();
+
 	printf("############# Generate Move #############\n");
 
 	printBoard(root.Board);
 	std::cout << "Color " << Color << std::endl;
 	
 	root.depth = 0;
+	while((double)(clock() - begin) / CLOCKS_PER_SEC < TIME_LIMIT) {
+		Node* node = selection(&root);
+		expansion(node);
+		simulation(node);
+	}
 
-	expansion(&root, Color);
+	short best_move[4];
+	double best = -1.;
+	for (auto& child : root.child) {
+		printf("move: (%d, %d) to (%d, %d)  win rate: %.2f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
+		printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
+
+		if ((*child).WR > best) {
+			best = (*child).WR;
+			memcpy(best_move, (*child).move, 4*sizeof(short));
+		}
+	}
+
+
+	/*
+	expansion(&root);
 
 	std::cout << root.child.size() << std::endl;
 
@@ -413,6 +508,7 @@ void MyAI::generateMove(char move[6]) {
 		uint32_t m = randIndex(root.child.size());
 		memcpy(best_move, (*root.child[m]).move, 4*sizeof(short));
 	}
+	*/
 
 	// moves: 4*16+8 [from_x, from_y, to_x, to_y]
 	// flips: 16 [x, y, x, y]
