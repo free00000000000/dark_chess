@@ -302,6 +302,7 @@ void MyAI::expansion(Node *node) {
 		// std::cout << (*(*node).child[i]).move[0] << ' ' << (*(*node).child[i]).move[1] << std::endl;
 	}
 
+	std::cout << "move: " << node->child.size() << std::endl;
 	std::cout << "end expansion" << std::endl;
 }
 
@@ -330,6 +331,7 @@ void MyAI::simulation(Node *node) {
 
 	}
 
+	std::cout << "end simulation" << std::endl;
 }
 
 void MyAI::randomPlay(Node *node, short color, unsigned int times) {
@@ -418,7 +420,8 @@ Node* MyAI::selection(Node* node) {
 				}
 			}
 			uint32_t c_id = randIndex(cover);
-			best_node = node->child[c_id];
+			best_node = node->child[piece[c_id]];
+			// std::cout << "c_id: " << piece[c_id] << std::endl;
 		}
 
 		node = best_node;
@@ -435,21 +438,27 @@ void MyAI::backpropagation(Node* node) {
 
 	for (auto& child : node->child) {
 		if (child->isflip) {  // chance node
-			int c_id = 0;
-			int total_cover = 0;
-			int wins = 0;
-			for (int i=1; i<16; ++i) {
-				if (child->chessCover[i] > 0) {
-					wins += child->child[c_id]->Wins * child->chessCover[i];
-					total_cover += child->chessCover[i];
-					c_id += 1;
-				}
+			// int c_id = 0;
+			// int total_cover = 0;
+			// int wins = 0;
+			// for (int i=1; i<16; ++i) {
+			// 	if (child->chessCover[i] > 0) {
+			// 		wins += child->child[c_id]->Wins * child->chessCover[i];
+			// 		total_cover += child->chessCover[i];
+			// 		c_id += 1;
+			// 	}
+			// }
+			// std::cout << wins << ' ' << total_cover << std::endl;
+			// child->Wins = wins/total_cover;
+			// child->Ntotal = SIMULATE_COUNT_PER_CHILD;
+			for (auto& child_child : child->child) {
+				child->Wins += child_child->Wins;
+				child->Ntotal += child_child->Ntotal;
 			}
-			child->Wins = wins/total_cover;
-			child->Ntotal = SIMULATE_COUNT_PER_CHILD;
 		}
 		node->Ntotal += child->Ntotal;
 		node->Wins += child->Wins;
+		child->WR = (double)child->Wins/child->Ntotal;
 	}
 
 	if (node == &root) return;
@@ -465,10 +474,13 @@ void MyAI::generateMove(char move[6]) {
 	std::cout << "Color " << Color << std::endl;
 	
 	root.depth = 0;
+	root.Wins = 0;
+	root.Ntotal = 0;
 	while((double)(clock() - begin) / CLOCKS_PER_SEC < TIME_LIMIT) {
 		Node* node = selection(&root);
 		expansion(node);
 		simulation(node);
+		backpropagation(node);
 	}
 
 	short best_move[4];
