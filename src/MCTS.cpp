@@ -3,7 +3,7 @@
 #include "rand.cpp"
 #include <iostream>
 
-#define SIMULATE_COUNT_PER_CHILD 5
+#define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
@@ -378,7 +378,7 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 		while (true) {
 			if (count > 300) {
 				(*node).Ntotal += 1;
-				node->Wins += evaluation(node->Board, node->chessCover);
+				node->Wins += evaluation(Board, chessCover);
 				break;
 			}
 
@@ -393,7 +393,7 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 				// 當 c != 我方
 				// if (c != Color) (*node).Wins += 1;
 				(*node).Ntotal += 1;
-				node->Wins += evaluation(node->Board, node->chessCover);
+				node->Wins += evaluation(Board, chessCover);
 				break;
 			}
 
@@ -427,12 +427,13 @@ Node* MyAI::selection(Node* node) {
 	// std::cout << "selection" << std::endl;
 	Node* best_node;
 	while (node->child.size() > 0) {
-		double best_ucb = -1.;
+		double best_ucb = -99999999.;
 
 		if (!node->isflip) {
 			// 非 chance node 選擇
 			if (node->depth % 2 == 0) {
 				for (auto& child : node->child) {
+					printf("score: %.4f\n", child->WR);
 					double ucb = child->WR + 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
 					// printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->WR);
 					if (ucb > best_ucb) {
@@ -441,8 +442,9 @@ Node* MyAI::selection(Node* node) {
 					}
 				}
 			} else {
-				best_ucb = 9999999.;
+				best_ucb = 99999999.;
 				for (auto& child : node->child) {
+					printf("score: %.4f\n", child->WR);
 					double ucb = child->WR - 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
 					// printf("(%d, %d): %f, %f t:%d \n", child->move[0], child->move[1], ucb, child->WR, child->Ntotal);
 					if (ucb < best_ucb) {
@@ -532,7 +534,7 @@ void MyAI::generateMove(char move[6]) {
 	}
 
 	short best_move[4];
-	double best = -1.;
+	double best = -99999999.;
 	for (auto& child : root.child) {
 		printf("move: (%d, %d) to (%d, %d)  win rate: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
 		printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
