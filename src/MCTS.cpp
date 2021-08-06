@@ -3,8 +3,8 @@
 #include "rand.cpp"
 #include <iostream>
 
-#define SIMULATE_COUNT_PER_CHILD 100
-#define TIME_LIMIT 5
+#define SIMULATE_COUNT_PER_CHILD 10
+#define TIME_LIMIT 6
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
@@ -317,6 +317,12 @@ void MyAI::simulation(Node *node) {
 		color = Color;  // 我方
 	}
 
+	if (node->child.size() == 0) {
+		printf("%d %d\n", node->Ntotal, node->Wins);
+		node->Ntotal += SIMULATE_COUNT_PER_CHILD;
+		if (node->Wins > 0) node->Wins += SIMULATE_COUNT_PER_CHILD;
+	}
+
 	for (auto& child : node->child) {
     // cout << it << endl;
 		if (!child->isflip) {
@@ -394,14 +400,28 @@ Node* MyAI::selection(Node* node) {
 	std::cout << "selection" << std::endl;
 	Node* best_node;
 	while (node->child.size() > 0) {
-		double best = -1.;
+		double best_ucb = -1.;
 
 		if (!node->isflip) {
 			// 非 chance node 選擇
-			for (auto& child : node->child) {
-				if ((*child).WR > best) {
-					best = (*child).WR;
-					best_node = child;
+			if (node->depth % 2 == 0) {
+				for (auto& child : node->child) {
+					double ucb = child->WR + 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
+					printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->WR);
+					if (ucb > best_ucb) {
+						best_ucb = ucb;
+						best_node = child;
+					}
+				}
+			} else {
+				best_ucb = 9999999.;
+				for (auto& child : node->child) {
+					double ucb = child->WR + 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
+					printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->WR);
+					if (ucb < best_ucb) {
+						best_ucb = ucb;
+						best_node = child;
+					}
 				}
 			}
 
@@ -426,9 +446,11 @@ Node* MyAI::selection(Node* node) {
 
 		node = best_node;
 		printf("move %c (%d, %d) to (%d, %d)  win rate: %.2f\n", toCharTable[node->Board[node->move[3]][node->move[2]]], node->move[0], node->move[1], node->move[2], node->move[3], node->WR);
-
+		std::cout << "ucb: " << best_ucb << std::endl;
+		
 	}
 	
+	printBoard(node->Board);
 	std::cout << "end selection" << std::endl;
 	return node;
 }
@@ -436,6 +458,10 @@ Node* MyAI::selection(Node* node) {
 void MyAI::backpropagation(Node* node) {
 	if (node->isflip) backpropagation(node->parent);
 
+	if (node->child.size() > 0) {
+		node->Wins = 0;
+		node->Ntotal = 0;
+	}
 	for (auto& child : node->child) {
 		if (child->isflip) {  // chance node
 			// int c_id = 0;
@@ -461,6 +487,8 @@ void MyAI::backpropagation(Node* node) {
 		child->WR = (double)child->Wins/child->Ntotal;
 	}
 
+	assert(node->Ntotal > 0);
+	assert(node->Wins >= 0);
 	if (node == &root) return;
 	backpropagation(node->parent);
 }
@@ -533,6 +561,7 @@ void MyAI::generateMove(char move[6]) {
 	// short best_move[4] = {total_moves[m][0], total_moves[m][1], total_moves[m][2], total_moves[m][3]};
 
 
+	std::cout << "total simulation: " << root.Ntotal << std::endl;
 	printf("final best move: (%d, %d) to (%d, %d)\n", best_move[0], best_move[1], best_move[2], best_move[3]);
 	fflush(stdout);
 
