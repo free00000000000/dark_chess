@@ -340,6 +340,31 @@ void MyAI::simulation(Node *node) {
 	// std::cout << "end simulation" << std::endl;
 }
 
+int MyAI::evaluation(short Board[10][6], short chessCover[16]) {
+	int score = 0;
+	short opColor = !Color;
+	for (int y=1; y<=8; ++y) {
+		for (int x=1; x<=4; ++x) {
+			if (colorTable[Board[y][x]] == Color) {
+				score += pieceScore[Board[y][x]];
+			} else if (colorTable[Board[y][x]] == opColor) {
+				score -= pieceScore[Board[y][x]];
+			}
+		}
+	}
+
+	for (int i=1; i<16; ++i) {
+		if (chessCover[i] > 0) {
+			if (colorTable[i] == Color) {
+				score += pieceScore[i];
+			} else {
+				score -= pieceScore[i];
+			}
+		}
+	}
+	return score;
+}
+
 void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 
 	for (unsigned int t=0 ; t<times; ++t) {
@@ -353,6 +378,7 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 		while (true) {
 			if (count > 300) {
 				(*node).Ntotal += 1;
+				node->Wins += evaluation(node->Board, node->chessCover);
 				break;
 			}
 
@@ -365,8 +391,9 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 			// c 輸
 			if (m==0 & f==0) {
 				// 當 c != 我方
-				if (c != Color) (*node).Wins += 1;
+				// if (c != Color) (*node).Wins += 1;
 				(*node).Ntotal += 1;
+				node->Wins += evaluation(node->Board, node->chessCover);
 				break;
 			}
 

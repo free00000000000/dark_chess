@@ -46,6 +46,9 @@ const bool canMoveTable[16][16] = {  // canMoveTable[from][to]
 const short colorTable[] = {-1, 0, 0, 0, 0, 0, 0, 0, 
     						            -1, 1, 1, 1, 1, 1, 1, 1};
 
+const double pieceScore[] = {0, 6, 5, 4, 3, 2, 4, 1, 
+														 0, 6, 5, 4, 3, 2, 4, 1};
+
 class Node {
 public:
 	short Board[10][6];
@@ -158,6 +161,8 @@ private:
 	void backpropagation(Node *node);
 	void randomPlay(Node *node, short color, unsigned int times);
 	bool isFinish(short Board[10][6]);
+
+	int evaluation(short Board[10][6], short chessCover[16]);
 
 	void MakeMove(short move[4], short Board[10][6]);
 	void MakeFlip(short move[4], short pieceId, short Board[10][6], short chessCover[16]);
