@@ -320,7 +320,12 @@ void MyAI::simulation(Node *node) {
 	if (node->child.size() == 0) {
 		// printf("%d %d\n", node->Ntotal, node->Wins);
 		node->Ntotal += SIMULATE_COUNT_PER_CHILD;
-		if (node->Wins > 0) node->Wins += SIMULATE_COUNT_PER_CHILD;
+		if (node->Wins > 0) {
+			// node->Wins += SIMULATE_COUNT_PER_CHILD<<3;
+			node->Wins += evaluation(node->Board, node->chessCover)*SIMULATE_COUNT_PER_CHILD;
+			// std::cout << "end:" << node->Wins << std::endl;
+		}
+		return;
 	}
 
 	for (auto& child : node->child) {
@@ -391,7 +396,7 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 			// c 輸
 			if (m==0 & f==0) {
 				// 當 c != 我方
-				// if (c != Color) (*node).Wins += 1;
+				// if (c != Color) node->Wins += 8; 
 				(*node).Ntotal += 1;
 				node->Wins += evaluation(Board, chessCover);
 				break;
@@ -433,7 +438,7 @@ Node* MyAI::selection(Node* node) {
 			// 非 chance node 選擇
 			if (node->depth % 2 == 0) {
 				for (auto& child : node->child) {
-					printf("score: %.4f\n", child->WR);
+					// printf("score: %.4f\n", child->WR);
 					double ucb = child->WR + 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
 					// printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->WR);
 					if (ucb > best_ucb) {
@@ -444,7 +449,7 @@ Node* MyAI::selection(Node* node) {
 			} else {
 				best_ucb = 99999999.;
 				for (auto& child : node->child) {
-					printf("score: %.4f\n", child->WR);
+					// printf("score: %.4f\n", child->WR);
 					double ucb = child->WR - 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
 					// printf("(%d, %d): %f, %f t:%d \n", child->move[0], child->move[1], ucb, child->WR, child->Ntotal);
 					if (ucb < best_ucb) {
@@ -498,12 +503,20 @@ void MyAI::backpropagation(Node* node) {
 		wins += child->Wins;
 		child->WR = (double)child->Wins/child->Ntotal;
 	}
-	
+
+	int win = INT32_MAX;
 	Node* now = node;
+	if (now->child.size() == 0) {
+		total = now->Ntotal;
+		wins = now->Wins;
+		now = now->parent;
+	}
+	// std::cout << wins << ' ' << total << std::endl;
 	while (now != NULL) {
 		now->Ntotal += total;
 		now->Wins += wins;
 		now->WR = (double)now->Wins/now->Ntotal;
+		// printf("(%d, %d): %d t:%d \n", now->move[0], now->move[1], now->Wins, now->Ntotal);
 		now = now->parent;
 	}
 }
@@ -531,6 +544,7 @@ void MyAI::generateMove(char move[6]) {
 		expansion(node);
 		simulation(node);
 		backpropagation(node);
+		if (root.Wins > (INT_MAX>>1) || root.Wins < (INT_MIN>>1)) break;
 	}
 
 	short best_move[4];
