@@ -46,8 +46,8 @@ const bool canMoveTable[16][16] = {  // canMoveTable[from][to]
 const short colorTable[] = {-1, 0, 0, 0, 0, 0, 0, 0, 
     						            -1, 1, 1, 1, 1, 1, 1, 1};
 
-const double pieceScore[] = {0, 6, 5, 4, 3, 2, 4, 1, 
-														 0, 6, 5, 4, 3, 2, 4, 1};
+const double pieceScore[] = {0, 810, 270, 90, 18, 6, 180, 1, 
+														 0, 810, 270, 90, 18, 6, 180, 1};
 
 class Node {
 public:
@@ -162,7 +162,7 @@ private:
 	void randomPlay(Node *node, short color, unsigned int times);
 	bool isFinish(short Board[10][6]);
 
-	int evaluation(short Board[10][6], short chessCover[16]);
+	int evaluation(short Board[10][6], short chessCover[16], short who_win);
 
 	void MakeMove(short move[4], short Board[10][6]);
 	void MakeFlip(short move[4], short pieceId, short Board[10][6], short chessCover[16]);

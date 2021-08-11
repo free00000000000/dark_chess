@@ -5,6 +5,8 @@
 
 #define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
+#define WIN_SCORE 2000
+#define C 472
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
@@ -319,12 +321,15 @@ void MyAI::simulation(Node *node) {
 
 	if (node->child.size() == 0) {
 		// printf("%d %d\n", node->Ntotal, node->Wins);
-		node->Ntotal += SIMULATE_COUNT_PER_CHILD;
-		if (node->Wins > 0) {
-			// node->Wins += SIMULATE_COUNT_PER_CHILD<<3;
-			node->Wins += evaluation(node->Board, node->chessCover)*SIMULATE_COUNT_PER_CHILD;
-			// std::cout << "end:" << node->Wins << std::endl;
+		// int score = node->Wins/node->Ntotal;
+		int score = node->WR;
+		if (abs(score) == WIN_SCORE, node->depth<=6) {
+			int bonus[] = {1, 4, 4, 3, 3, 2, 2};
+			score *= bonus[node->depth];
 		}
+		node->Ntotal += SIMULATE_COUNT_PER_CHILD;
+		node->Wins += score*SIMULATE_COUNT_PER_CHILD;
+
 		return;
 	}
 
@@ -345,9 +350,12 @@ void MyAI::simulation(Node *node) {
 	// std::cout << "end simulation" << std::endl;
 }
 
-int MyAI::evaluation(short Board[10][6], short chessCover[16]) {
+int MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win) {
 	int score = 0;
 	short opColor = !Color;
+	if (who_win == Color) return WIN_SCORE;
+	else if (who_win == opColor) return -WIN_SCORE;
+
 	for (int y=1; y<=8; ++y) {
 		for (int x=1; x<=4; ++x) {
 			if (colorTable[Board[y][x]] == Color) {
@@ -381,9 +389,9 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 		memcpy(chessCover, (*node).chessCover, 16*sizeof(short));
 
 		while (true) {
-			if (count > 300) {
+			if (count > 250) {
 				(*node).Ntotal += 1;
-				node->Wins += evaluation(Board, chessCover);
+				node->Wins += evaluation(Board, chessCover, -1);
 				break;
 			}
 
@@ -395,10 +403,8 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 
 			// c 輸
 			if (m==0 & f==0) {
-				// 當 c != 我方
-				// if (c != Color) node->Wins += 8; 
 				(*node).Ntotal += 1;
-				node->Wins += evaluation(Board, chessCover);
+				node->Wins += evaluation(Board, chessCover, !c);
 				break;
 			}
 
@@ -431,6 +437,8 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 Node* MyAI::selection(Node* node) {
 	// std::cout << "selection" << std::endl;
 	Node* best_node;
+	double CC = C;
+	if (abs(node->WR) >= 1500) CC *= 50;
 	while (node->child.size() > 0) {
 		double best_ucb = -99999999.;
 
@@ -439,7 +447,9 @@ Node* MyAI::selection(Node* node) {
 			if (node->depth % 2 == 0) {
 				for (auto& child : node->child) {
 					// printf("score: %.4f\n", child->WR);
-					double ucb = child->WR + 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
+					double bouns = 0;
+					if (!child->isflip) bouns = CC*sqrt(log(node->Ntotal)/child->Ntotal);
+					double ucb = child->WR + bouns;
 					// printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->WR);
 					if (ucb > best_ucb) {
 						best_ucb = ucb;
@@ -450,7 +460,10 @@ Node* MyAI::selection(Node* node) {
 				best_ucb = 99999999.;
 				for (auto& child : node->child) {
 					// printf("score: %.4f\n", child->WR);
-					double ucb = child->WR - 1.18*sqrt(log(node->Ntotal)/child->Ntotal);
+					double bouns = 0;
+					if (!child->isflip) bouns = CC*sqrt(log(node->Ntotal)/child->Ntotal);
+					double ucb = child->WR - bouns;
+					// if (child->isflip) ucb += 10;
 					// printf("(%d, %d): %f, %f t:%d \n", child->move[0], child->move[1], ucb, child->WR, child->Ntotal);
 					if (ucb < best_ucb) {
 						best_ucb = ucb;
@@ -486,37 +499,64 @@ Node* MyAI::selection(Node* node) {
 	
 	// printBoard(node->Board);
 	// std::cout << "end selection" << std::endl;
+	if (node->Ntotal >= 200) {
+		// printf("score: %.5f \n", node->WR);
+		return NULL;
+	}
 	return node;
 }
 
 void MyAI::backpropagation(Node* node) {
 	unsigned int total = 0;
 	int wins = 0;
-	for (auto& child : node->child) {
-		if (child->isflip) {  // chance node
-			for (auto& child_child : child->child) {
-				child->Wins += child_child->Wins;
-				child->Ntotal += child_child->Ntotal;
-			}
-		}
-		total += child->Ntotal;
-		wins += child->Wins;
-		child->WR = (double)child->Wins/child->Ntotal;
-	}
-
-	int win = INT32_MAX;
 	Node* now = node;
 	if (now->child.size() == 0) {
 		total = now->Ntotal;
 		wins = now->Wins;
+		now->WR = (double)wins/total;
 		now = now->parent;
+		
+	} else {
+		for (auto& child : node->child) {
+			if (child->isflip) {  // chance node
+				unsigned int Ntotal = 0;
+				int cover_idx[14];
+				for (int i=1, j=0; i<16; ++i) {
+					if (child->chessCover[i] > 0) {
+						Ntotal += child->chessCover[i];
+						cover_idx[j] = i;
+						j++;
+					}
+				}
+				int i = 0;
+				child->WR = 0;
+				for (auto& child_child : child->child) {
+					double p = (double)child->chessCover[cover_idx[i]]/Ntotal;
+					child_child->WR = (double)child_child->Wins/child_child->Ntotal;
+					child->WR += child_child->WR * p;
+					child->Ntotal += child_child->Ntotal;
+					i++;
+				}
+				child->Wins = (int)child->Ntotal*child->WR;
+				total += child->Ntotal;
+				wins += child->Wins;
+
+			} else {
+				total += child->Ntotal;
+				wins += child->Wins;
+				child->WR = (double)child->Wins/child->Ntotal;
+			}
+		}
 	}
+	
 	// std::cout << wins << ' ' << total << std::endl;
 	while (now != NULL) {
 		now->Ntotal += total;
 		now->Wins += wins;
 		now->WR = (double)now->Wins/now->Ntotal;
-		// printf("(%d, %d): %d t:%d \n", now->move[0], now->move[1], now->Wins, now->Ntotal);
+		// if (now->WR >= WIN_SCORE) {
+		// 	printf("(%d, %d): score: %.5f \n", now->move[0], now->move[1], now->WR);
+		// }
 		now = now->parent;
 	}
 }
@@ -535,22 +575,27 @@ void MyAI::generateMove(char move[6]) {
 	while((double)(clock() - begin) / CLOCKS_PER_SEC < TIME_LIMIT) {
 	// int r = 0;
 	// while((r++)<10) {
-	// for (auto& child : root.child) {
-	// 	printf("move: (%d, %d) to (%d, %d)  win rate: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
-	// 	printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
-	// }
-	// std::cout << std::endl;
 		Node* node = selection(&root);
+		// printf("--> (%d, %d) to (%d, %d)  win rate: %.4f\n", (*node).move[0], (*node).move[1], (*node).move[2], (*node).move[3], (*node).WR);
+		if (node == NULL) {
+			std::cout << "break" << std::endl;
+			break;
+		}
 		expansion(node);
 		simulation(node);
 		backpropagation(node);
-		if (root.Wins > (INT_MAX>>1) || root.Wins < (INT_MIN>>1)) break;
+
+		// for (auto& child : root.child) {
+		// 	printf("move: (%d, %d) to (%d, %d)  win rate: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
+		// 	printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
+		// }
+		// std::cout << std::endl;
 	}
 
 	short best_move[4];
 	double best = -99999999.;
 	for (auto& child : root.child) {
-		printf("move: (%d, %d) to (%d, %d)  win rate: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
+		printf("move: (%d, %d) to (%d, %d)  avg score: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).WR);
 		printf("total: %d  wins: %d\n", (*child).Ntotal, (*child).Wins);
 
 		if ((*child).WR > best) {
