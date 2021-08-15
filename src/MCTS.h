@@ -46,8 +46,11 @@ const bool canMoveTable[16][16] = {  // canMoveTable[from][to]
 const short colorTable[] = {-1, 0, 0, 0, 0, 0, 0, 0, 
     						            -1, 1, 1, 1, 1, 1, 1, 1};
 
-const double pieceScore[] = {0, 810, 270, 90, 18, 6, 180, 1, 
-														 0, 810, 270, 90, 18, 6, 180, 1};
+// const double pieceScore[] = {0, 810, 270, 90, 18, 6, 180, 1, 
+// 														 0, 810, 270, 90, 18, 6, 180, 1};
+
+const double pieceScore[] = {0, 0.125, 0.042, 0.014, 0.003, 0.001, 0.028, 0.0002, 
+														 0, 0.125, 0.042, 0.014, 0.003, 0.001, 0.028, 0.0002};
 
 class Node {
 public:
@@ -63,14 +66,14 @@ public:
 	bool isflip;  // chance node = true
 
 	unsigned int Ntotal; // total # of simulations
-	int Wins; // number of wins
-	double WR; // win rate
+	double score; 
+	double avg_score;
 	// float score;
 
 	Node(){
 		Ntotal = 0;
-		Wins = 0;
-		WR = 0;
+		score = 0.;
+		avg_score = 0.;
 	};
 	
 	Node(const Node &node) {
@@ -79,8 +82,8 @@ public:
 		depth = node.depth;
 		isflip = false;
 		Ntotal = 0;
-		Wins = 0;
-		WR = 0;
+		score = 0.;
+		avg_score = 0.;
 	};
 };
 
@@ -153,6 +156,7 @@ private:
 
 	// show
 	void printBoard(short B[10][6]);
+	void printTree(Node* node, FILE* pfile);
 
 	// MCTS
 	Node* selection(Node* node);
@@ -162,7 +166,7 @@ private:
 	void randomPlay(Node *node, short color, unsigned int times);
 	bool isFinish(short Board[10][6]);
 
-	int evaluation(short Board[10][6], short chessCover[16], short who_win);
+	double evaluation(short Board[10][6], short chessCover[16], short who_win);
 
 	void MakeMove(short move[4], short Board[10][6]);
 	void MakeFlip(short move[4], short pieceId, short Board[10][6], short chessCover[16]);
