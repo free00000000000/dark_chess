@@ -5,7 +5,7 @@
 
 #define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
-#define C 0.59
+#define C 1.18
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
@@ -256,8 +256,8 @@ void MyAI::legalMove(short moves[][4], short &count, short Board[10][6], int col
 }
 
 void MyAI::expansion(Node *node) {
-	// assert(node->isflip == false);
-	if (node->isflip) return;
+	assert(node->isflip == false);
+	// if (node->isflip) return;
 
 	short color;  // node 的顏色
 	if ((*node).depth%2 == 0) {
@@ -472,22 +472,22 @@ Node* MyAI::selection(Node* node) {
 
 		} else {
 			// chance node 隨機翻
-			// int cover = 0;
-			// int piece[32];
-			// int idx = 0;  // child id
-			// for (int i=1; i<16; ++i) {
-			// 	if (node->chessCover[i] > 0) {
-			// 		for (int j=0; j<node->chessCover[i]; ++j) {
-			// 			piece[cover] = idx;
-			// 			cover++;
-			// 		}
-			// 		idx++;
-			// 	}
-			// }
-			// uint32_t c_id = randIndex(cover);
-			// best_node = node->child[piece[c_id]];
-			if (node->child.size() == 1) best_node = node->child[0];
-			else return node;
+			int cover = 0;
+			int piece[32];
+			int idx = 0;  // child id
+			for (int i=1; i<16; ++i) {
+				if (node->chessCover[i] > 0) {
+					for (int j=0; j<node->chessCover[i]; ++j) {
+						piece[cover] = idx;
+						cover++;
+					}
+					idx++;
+				}
+			}
+			uint32_t c_id = randIndex(cover);
+			best_node = node->child[piece[c_id]];
+			// if (node->child.size() == 1) best_node = node->child[0];
+			// else return node;
 
 			// std::cout << "c_id: " << piece[c_id] << std::endl;
 		}
@@ -564,9 +564,9 @@ void MyAI::backpropagation(Node* node) {
 
 void MyAI::generateMove(char move[6]) {
 	clock_t begin = clock();
-	// FILE* pfile = fopen ("tree.txt","w");
-	// fprintf(pfile, "");
-	// fclose(pfile);
+	FILE* pfile = fopen ("tree.txt","w");
+	fprintf(pfile, "");
+	fclose(pfile);
 
 	printf("############# Generate Move #############\n");
 
@@ -654,9 +654,9 @@ void MyAI::generateMove(char move[6]) {
 	std::cout << "total simulation: " << root.Ntotal << std::endl;
 	printf("final best move: (%d, %d) to (%d, %d)\n", best_move[0], best_move[1], best_move[2], best_move[3]);
 
-	// pfile = fopen ("tree.txt","a");
-	// printTree(&root, pfile);
-	// fclose(pfile);
+	pfile = fopen ("tree.txt","a");
+	printTree(&root, pfile);
+	fclose(pfile);
 
 	fflush(stdout);
 
@@ -720,7 +720,10 @@ void MyAI::printBoard(short B[10][6]) {
 void MyAI::printTree(Node* node, FILE* pfile) {
 	for (int i=0; i<node->depth; ++i) fprintf(pfile, " ");
 	for (int i=0; i<node->depth; ++i) fprintf(pfile, "-");
-	fprintf(pfile, "(%d, %d) to (%d, %d) | s: %.4f t: %d\n", node->move[0], node->move[1], node->move[2], node->move[3], node->avg_score, node->Ntotal);
+	if (node->depth != 0)
+		fprintf(pfile, "(%d, %d) to (%d, %d) (%c)| s: %.4f t: %d\n", node->move[0], node->move[1], node->move[2], node->move[3], toCharTable[node->Board[node->move[1]][node->move[0]]], node->avg_score, node->Ntotal);
+	else 
+		fprintf(pfile, "(%d, %d) to (%d, %d) | s: %.4f t: %d\n", node->move[0], node->move[1], node->move[2], node->move[3], node->avg_score, node->Ntotal);
 	for (auto& child : node->child) {
 		printTree(child, pfile);
 	}
