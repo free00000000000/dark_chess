@@ -564,9 +564,9 @@ void MyAI::backpropagation(Node* node) {
 
 void MyAI::generateMove(char move[6]) {
 	clock_t begin = clock();
-	FILE* pfile = fopen ("tree.txt","w");
-	fprintf(pfile, "");
-	fclose(pfile);
+	// FILE* pfile = fopen ("tree.txt","w");
+	// fprintf(pfile, "");
+	// fclose(pfile);
 
 	printf("############# Generate Move #############\n");
 
@@ -654,9 +654,9 @@ void MyAI::generateMove(char move[6]) {
 	std::cout << "total simulation: " << root.Ntotal << std::endl;
 	printf("final best move: (%d, %d) to (%d, %d)\n", best_move[0], best_move[1], best_move[2], best_move[3]);
 
-	pfile = fopen ("tree.txt","a");
-	printTree(&root, pfile);
-	fclose(pfile);
+	// pfile = fopen ("tree.txt","a");
+	// printTree(&root, pfile);
+	// fclose(pfile);
 
 	fflush(stdout);
 
