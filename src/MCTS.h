@@ -159,12 +159,13 @@ private:
 	void printTree(Node* node, FILE* pfile);
 
 	// MCTS
-	Node* selection(Node* node);
+	Node* selection(Node* node, bool end);
 	void expansion(Node *node);
 	void simulation(Node *node);
 	void backpropagation(Node *node);
 	void randomPlay(Node *node, short color, unsigned int times);
 	bool isFinish(short Board[10][6]);
+	bool isEndgame(short Board[10][6]);
 
 	double evaluation(short Board[10][6], short chessCover[16], short who_win);
 
