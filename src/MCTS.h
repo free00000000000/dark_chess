@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+
 #define RED 0
 #define BLACK 1
 #define CHESS_COVER 8  // X
@@ -110,7 +111,7 @@ class MyAI
   	"showboard"
 	};
 public:
-	MyAI(void);
+	MyAI(double c);
 	~MyAI(void);
 
 	// commands

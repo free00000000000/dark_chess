@@ -5,12 +5,15 @@
 
 #define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
-#define C 1.18
 #define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
 
-MyAI::MyAI(void){}
+double C;
+
+MyAI::MyAI(double c){
+	C = c;
+}
 
 MyAI::~MyAI(void){}
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include "MCTS.h"
 
 // commands enumerate
@@ -46,12 +47,20 @@ static bool (MyAI::*functions[])(const char* [], char*) = {
   &MyAI::showboard
 };
 
-int main(){
+int main(int argc, char *argv[]){
+  double c;
+  if (argc > 1) {
+    std::string s(argv[1]);
+    c = std::stod(s);
+  } else {
+    c = 1.18;
+  }
+
   char read[1024], write[1024], output[2048], *token;
   const char *data[10];
   int id;
   bool isFailed;
-  MyAI myai;
+  MyAI myai(c);
   do{
     // read command
     fgets(read, 1024, stdin);
