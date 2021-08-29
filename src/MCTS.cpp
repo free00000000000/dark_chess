@@ -439,7 +439,8 @@ void MyAI::randomPlay(Node *node, short color, unsigned int times) {
 	}
 }
 
-Node* MyAI::selection(Node* node, bool end) {
+// Node* MyAI::selection(Node* node, bool end) {
+Node* MyAI::selection(Node* node) {
 	// std::cout << "selection" << std::endl;
 	Node* best_node;
 
@@ -451,8 +452,9 @@ Node* MyAI::selection(Node* node, bool end) {
 			if (node->depth % 2 == 0) {
 				for (auto& child : node->child) {
 					// printf("score: %.4f\n", child->avg_score);
-					double ucb = child->avg_score;
-					if (!end) ucb += C*sqrt(log(node->Ntotal)/child->Ntotal);
+					double ucb = child->avg_score + C*sqrt(log(node->Ntotal)/child->Ntotal);
+					// double ucb = child->avg_score;
+					// if (!end) ucb += C*sqrt(log(node->Ntotal)/child->Ntotal);
 					// if (child->isflip) ucb -= 100;
 					// printf("(%d, %d): %f, %f \n", child->move[0], child->move[1], ucb, child->avg_score);
 					if (ucb > best_ucb) {
@@ -464,8 +466,9 @@ Node* MyAI::selection(Node* node, bool end) {
 				best_ucb = 99999999.;
 				for (auto& child : node->child) {
 					// printf("score: %.4f\n", child->avg_score);
-					double ucb = child->avg_score;
-					if (!end) ucb -= C*sqrt(log(node->Ntotal)/child->Ntotal);
+					double ucb = child->avg_score - C*sqrt(log(node->Ntotal)/child->Ntotal);
+					// double ucb = child->avg_score;
+					// if (!end) ucb -= C*sqrt(log(node->Ntotal)/child->Ntotal);
 					// if (child->isflip) ucb += 100;
 					// printf("(%d, %d): %f, %f t:%d \n", child->move[0], child->move[1], ucb, child->avg_score, child->Ntotal);
 					if (ucb < best_ucb) {
@@ -582,12 +585,12 @@ void MyAI::generateMove(char move[6]) {
 	root.score = 0.;
 	root.Ntotal = 0;
 	
-	bool end = isEndgame(root.Board);
+	// bool end = isEndgame(root.Board);
 
 	while((double)(clock() - begin) / CLOCKS_PER_SEC < TIME_LIMIT) {
 	// int r = 0;
 	// while((r++)<10) {
-		Node* node = selection(&root, end);
+		Node* node = selection(&root);
 		// printf("--> (%d, %d) to (%d, %d)  win rate: %.4f\n", (*node).move[0], (*node).move[1], (*node).move[2], (*node).move[3], (*node).WR);
 		if (node == NULL) {
 			std::cout << "break" << std::endl;

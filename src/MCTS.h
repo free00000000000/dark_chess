@@ -160,7 +160,7 @@ private:
 	void printTree(Node* node, FILE* pfile);
 
 	// MCTS
-	Node* selection(Node* node, bool end);
+	Node* selection(Node* node);
 	void expansion(Node *node);
 	void simulation(Node *node);
 	void backpropagation(Node *node);
