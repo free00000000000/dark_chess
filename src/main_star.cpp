@@ -48,13 +48,13 @@ static bool (MyAI::*functions[])(const char* [], char*) = {
 };
 
 int main(int argc, char *argv[]){
-  double c;
-  if (argc > 1) {
-    std::string s(argv[1]);
-    c = std::stod(s);
-  } else {
-    c = 1.18;
-  }
+  // double c;
+  // if (argc > 1) {
+  //   std::string s(argv[1]);
+  //   c = std::stod(s);
+  // } else {
+  //   c = 1.18;
+  // }
 
   char read[1024], write[1024], output[2048], *token;
   const char *data[10];
