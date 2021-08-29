@@ -264,11 +264,12 @@ short MyAI::getFlip(short moves[][4], short Board[10][6], short chessCover[16], 
 	}
 
 	// 隨機一個
-	uint32_t id = randIndex(count_no_search);
-	moves[count][0] = moves[count][2] = no_search[id][0];
-	moves[count][1] = moves[count][3] = no_search[id][1];
-	count++;
-
+	if (count_no_search > 0) {
+		uint32_t id = randIndex(count_no_search);
+		moves[count][0] = moves[count][2] = no_search[id][0];
+		moves[count][1] = moves[count][3] = no_search[id][1];
+		count++;
+	}
 	return count-move_count;
 }
 
