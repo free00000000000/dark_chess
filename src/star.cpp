@@ -5,7 +5,7 @@
 
 #define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
-#define DEPTH_LIMIT 2
+#define DEPTH_LIMIT 7
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
 
@@ -218,33 +218,57 @@ short MyAI::getMove(short moves[][4], short Board[10][6], int color) {
 }
 
 short MyAI::getFlip(short moves[][4], short Board[10][6], short chessCover[16], short move_count) {
-	int cover_count = 0;
-	short count = move_count;
-
-	for (int i=1; i<16; ++i) cover_count += chessCover[i];
-
-	if (cover_count == 32) {
-		for (int y=1; y<=4; ++y) {
-			for (int x=1; x<=2; ++x) {
-				// flip
-				moves[count][0] = moves[count][2] = x;
-				moves[count][1] = moves[count][3] = y;
-				count++;
-			}
-		}
-		return count-move_count;
-	}
+	bool search[10][6] = {false};
+	short no_search[32][2];  // X position: x, y
 
 	for (int y=1; y<=8; ++y) {
-		for (int x=1; x<=4; ++x) {
-			if (Board[y][x] == CHESS_COVER) {
-				// flip
-				moves[count][0] = moves[count][2] = x;
-				moves[count][1] = moves[count][3] = y;
-				count++;
+		for(int x=1; x<=4; ++x) {
+			// 已翻開
+			if (colorTable[Board[y][x]] != -1) {
+				// 四周可搜
+				search[y+1][x] = true;
+				search[y-1][x] = true;
+				search[y][x+1] = true;
+				search[y][x-1] = true;
+
+				// 如果是我方炮
+				short c_id = Color==RED ? 6:14;
+				if (Board[y][x] == c_id) {
+					if (y >= 3) search[y-2][x] = true;
+					if (y <= 6) search[y+2][x] = true;
+					if (x == 1) search[y][3] = true;
+					else if (x == 2) search[y][4] = true;
+					else if (x == 3) search[y][1] = true;
+					else if (x == 4) search[y][2] = true;
+				}
 			}
 		}
 	}
+
+	short count = move_count;
+	int count_no_search = 0;
+	for (int y=1; y<=8; ++y) {
+		for(int x=1; x<=4; ++x) {
+			if (Board[y][x] == CHESS_COVER) {
+				if (search[y][x]) {
+					moves[count][0] = moves[count][2] = x;
+					moves[count][1] = moves[count][3] = y;
+					count++;
+				} else {
+					no_search[count_no_search][0] = x;
+					no_search[count_no_search][1] = y;
+					count_no_search += 1;
+				}
+			}
+		}
+	}
+
+	// 隨機一個
+	uint32_t id = randIndex(count_no_search);
+	moves[count][0] = moves[count][2] = no_search[id][0];
+	moves[count][1] = moves[count][3] = no_search[id][1];
+	count++;
+
 	return count-move_count;
 }
 
@@ -281,7 +305,8 @@ void MyAI::expansion(Node *node, short color) {
 	// std::cout << "flips count: " << f << std::endl;
 	for (int i=0; i<f; ++i) {
 		Node *next = new Node(*node);
-		next->depth += 1;
+		// next->depth += 1;
+		next->depth += 5;
 		memcpy(next->move, flips[i], 4*sizeof(short));
 		// expand next's child
 		for (short j=1; j<16; ++j) {
@@ -388,7 +413,7 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 	node->alpha = alpha;
 	node->beta = beta;
 
-	if (node->depth == DEPTH_LIMIT) {
+	if (node->depth >= DEPTH_LIMIT) {
 		return evaluation(node->Board, node->chessCover, -1);
 	}
 
