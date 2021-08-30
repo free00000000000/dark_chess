@@ -220,19 +220,25 @@ short MyAI::getMove(short moves[][4], short Board[10][6], int color) {
 short MyAI::getFlip(short moves[][4], short Board[10][6], short chessCover[16], short move_count) {
 	bool search[10][6] = {false};
 	short no_search[32][2];  // X position: x, y
+	short c_id = Color==RED ? 6:14;
+	bool is_c = chessCover[c_id] > 0 ? true : false;
 
 	for (int y=1; y<=8; ++y) {
 		for(int x=1; x<=4; ++x) {
 			// 已翻開
 			if (colorTable[Board[y][x]] != -1) {
-				// 四周可搜
-				search[y+1][x] = true;
-				search[y-1][x] = true;
-				search[y][x+1] = true;
-				search[y][x-1] = true;
+				// 敵方子，且我方有炮
+				if (is_c && colorTable[Board[y][x]] != Color) {
+					if (y >= 3) search[y-2][x] = true;
+					if (y <= 6) search[y+2][x] = true;
+					if (x == 1) search[y][3] = true;
+					else if (x == 2) search[y][4] = true;
+					else if (x == 3) search[y][1] = true;
+					else if (x == 4) search[y][2] = true;
+				}
+				
 
 				// 如果是我方炮
-				short c_id = Color==RED ? 6:14;
 				if (Board[y][x] == c_id) {
 					if (y >= 3) search[y-2][x] = true;
 					if (y <= 6) search[y+2][x] = true;
@@ -241,6 +247,15 @@ short MyAI::getFlip(short moves[][4], short Board[10][6], short chessCover[16], 
 					else if (x == 3) search[y][1] = true;
 					else if (x == 4) search[y][2] = true;
 				}
+				
+				// 四周可搜
+				search[y+1][x] = true;
+				search[y-1][x] = true;
+				search[y][x+1] = true;
+				search[y][x-1] = true;
+
+				
+
 			}
 		}
 	}
