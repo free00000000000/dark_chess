@@ -407,8 +407,16 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 		m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);
 		M[i+1] = M[i] + ((double)w[i]/total)*(t-v_max);
 
-		if (t <= A[i]) return M[i+1];
-		if (t >= B[i]) return m[i+1];
+		if (t <= A[i]) {
+			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+			node->child.shrink_to_fit();
+			return M[i+1];
+		}
+		if (t >= B[i]) {
+			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+			node->child.shrink_to_fit();
+			return m[i+1];
+		}
 		
 		i += 1;
 		A[i] = ((double)w[i-1]/w[i])*(A[i-1] - t) + v_max;
@@ -416,10 +424,10 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 	}
 	// printf("i=%d ab: %.4f, %.4f\n", i, A[i], B[i]);
 	t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max));
-	if (node->depth != 0) {
-		std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-		node->child.shrink_to_fit();
-	} else node->child[i]->score = t;
+
+	std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+	node->child.shrink_to_fit();
+		
 
 	m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);  // m[i] = M[i]
 	
@@ -439,6 +447,7 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 	expansion(node, color);
 
 	if (node->child.size() == 0) {
+		node->child.shrink_to_fit();
 		return evaluation(node->Board, node->chessCover, !color);
 	}
 	
@@ -454,15 +463,17 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 			// alpha = std::max(alpha, child->score);
 
 			if (beta <= m) {
+				std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+				node->child.shrink_to_fit();
 				return m;
 			}
 
 		}
 
-		if (node->depth != 0) {
+		// if (node->depth != 0) {
 			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
 			node->child.shrink_to_fit();
-		}
+		// }
 
 		return m;
 
@@ -480,14 +491,16 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 
 
 			if (m <= alpha) {
+				std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+				node->child.shrink_to_fit();
 				return m;
 			}
 		}
 
-		if (node->depth != 0) {
+		// if (node->depth != 0) {
 			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
 			node->child.shrink_to_fit();
-		}
+		// }
 
 		return m;
 	}
@@ -509,8 +522,28 @@ void MyAI::generateMove(char move[6]) {
 	root.score = 0.;
 	root.Ntotal = 0;
 	
+	// for (auto& child : root.child) {
+	// 	if (!child->isflip) {
+	// 		child->score = alphaBeta(child, !Color, -999999., 999999.);
+	// 	} else {
+	// 		child->score = star(child, !Color, -999999., 999999.);
+	// 	}		
+	// }
 
-	alphaBeta(&root, Color, -99999., 999999.);
+	expansion(&root, Color);
+
+	double m = -999999.;
+	for (auto& child : root.child) {
+		if (!child->isflip) {
+			child->score = alphaBeta(child, !Color, std::max(-999999., m), 999999.);
+		} else {
+			child->score = star(child, !Color, std::max(-999999., m), 999999.);
+		}
+		m = std::max(m, child->score);
+		// alpha = std::max(alpha, child->score);
+	}
+
+	// alphaBeta(&root, Color, -999999., 999999.);
 	
 
 
@@ -542,7 +575,6 @@ void MyAI::generateMove(char move[6]) {
 	sprintf(move, "%s-%s", from, to);
 	printf("move: %s\n", move);
 
-	root.child.clear();
 	root.Ntotal = 0;
 
 	printBoard(root.Board);
