@@ -416,7 +416,10 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 	}
 	// printf("i=%d ab: %.4f, %.4f\n", i, A[i], B[i]);
 	t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max));
-	node->child[i]->score = t;
+	if (node->depth != 0) {
+		std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+		node->child.shrink_to_fit();
+	} else node->child[i]->score = t;
 
 	m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);  // m[i] = M[i]
 	
@@ -438,12 +441,9 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 	if (node->child.size() == 0) {
 		return evaluation(node->Board, node->chessCover, !color);
 	}
-
-	// alpha = -9999.;
-	// beta = 9999.;
-
+	
 	if (color == Color) {  // my turn
-		double m = -9999;
+		double m = -999999.;
 		for (auto& child : node->child) {
 			if (!child->isflip) {
 				child->score = alphaBeta(child, !color, std::max(alpha, m), beta);
@@ -459,10 +459,15 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 
 		}
 
+		if (node->depth != 0) {
+			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+			node->child.shrink_to_fit();
+		}
+
 		return m;
 
 	} else {
-		double m = 9999;
+		double m = 999999.;
 		for (auto& child : node->child) {
 			if (!child->isflip) {
 				child->score = alphaBeta(child, !color, alpha, std::min(beta, m));
@@ -477,6 +482,11 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 			if (m <= alpha) {
 				return m;
 			}
+		}
+
+		if (node->depth != 0) {
+			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
+			node->child.shrink_to_fit();
 		}
 
 		return m;
@@ -499,7 +509,7 @@ void MyAI::generateMove(char move[6]) {
 	root.score = 0.;
 	root.Ntotal = 0;
 	
-	
+
 	alphaBeta(&root, Color, -99999., 999999.);
 	
 
@@ -537,6 +547,10 @@ void MyAI::generateMove(char move[6]) {
 
 	printBoard(root.Board);
 	printf("########### End Generate Move ###########\n\n");
+
+	std::for_each( root.child.begin(), root.child.end(), []( Node* element) { delete element; });
+	root.child.shrink_to_fit();
+
 }
 
 void MyAI::MakeMove(int src_x, int src_y, int dst_x, int dst_y) {
