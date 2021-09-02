@@ -60,34 +60,55 @@ public:
 	short chessCover[16];
 
 	Node *parent;
-	std::vector<Node*>child;
+	Node* child[80] = {NULL};
+	unsigned int child_count;
 
 	int depth; // depth, 0 for the root
 	short move[4];  // move to this state
 	bool isflip;  // chance node = true
 
-	unsigned int Ntotal; // total # of simulations
-	double score; 
-	double avg_score;
-	// float score;
+	double score;
+	// double alpha, beta;
 
-	double alpha, beta;
+	// unsigned int Ntotal; // total # of simulations
+	// double score; 
+	// double avg_score;
 
 	Node(){
-		Ntotal = 0;
+		child_count = 0;
+		depth = 0;
+		isflip = false;
 		score = 0.;
-		avg_score = 0.;
+		// Ntotal = 0;
+		// avg_score = 0.;
 	};
 	
 	Node(const Node &node) {
 		memcpy(Board, node.Board, 10*6*sizeof(short));
 		memcpy(chessCover, node.chessCover, 16*sizeof(short));
+		child_count = 0;
 		depth = node.depth;
 		isflip = false;
-		Ntotal = 0;
 		score = 0.;
-		avg_score = 0.;
+
+		// Ntotal = 0;
+		// avg_score = 0.;
 	};
+
+	void clean_child(){
+		for (int i=0; i<child_count; ++i) {delete child[i]; child[i]=NULL;}
+		child_count = 0;
+	};
+
+};
+
+// 由大到小
+class sort_indices {
+private:
+	double* mparr;
+public:
+	sort_indices(double* parr) : mparr(parr) {}
+	bool operator()(int i, int j) const { return mparr[i]>mparr[j]; }
 };
 
 class MyAI  

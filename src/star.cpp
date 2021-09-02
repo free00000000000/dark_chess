@@ -5,7 +5,7 @@
 
 #define SIMULATE_COUNT_PER_CHILD 10
 #define TIME_LIMIT 8
-#define DEPTH_LIMIT 7
+#define DEPTH_LIMIT 8
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
 
@@ -304,15 +304,25 @@ void MyAI::expansion(Node *node, short color) {
 	// moves: 4*16+8 [from_x, from_y, to_x, to_y]
 	short moves[72][4];
 	short m = getMove(moves, node->Board, color);
+
+	// ordering 吃大子優先
+	int idx[72];
+	for (int i=0; i<72; ++i) { idx[i] = i; }
+	double moves_score[72];
+	for (int i=0; i<m; ++i) {
+		moves_score[i] = pieceScore[node->Board[moves[i][3]][moves[i][2]]];
+	}
+	std::sort(idx, idx+m, sort_indices(moves_score));
+
 	// std::cout << "move count: " << m << std::endl;
 	for (int i=0; i<m; ++i) {
 		Node *next = new Node(*node);
 		// printf("move: (%d, %d) to (%d, %d)\n", moves[i][0], moves[i][1], moves[i][2], moves[i][3]);
-		MakeMove(moves[i], next->Board);
+		MakeMove(moves[idx[i]], next->Board);
 		next->depth += 1;
-		memcpy(next->move, moves[i], 4*sizeof(short));
+		memcpy(next->move, moves[idx[i]], 4*sizeof(short));
 		next->parent = node;
-		node->child.push_back(next);
+		node->child[node->child_count++] = next;
 	}
 
 	// flips: 32 [x, y, x, y]
@@ -331,14 +341,17 @@ void MyAI::expansion(Node *node, short color) {
 				memcpy(next_open->move, next->move, 4*sizeof(short));
 				MakeFlip(next_open->move, j, next_open->Board, next_open->chessCover);
 				next_open->parent = next;
-				next->child.push_back(next_open);
+				next->child[next->child_count++] = next_open;
 			}
 		}
+		assert(next->child_count<80);
 		next->isflip = true;
 		next->parent = node;
-		node->child.push_back(next);
+		node->child[node->child_count++] = next; 
 		// std::cout << (*(*node).child[i]).move[0] << ' ' << (*(*node).child[i]).move[1] << std::endl;
 	}
+
+	assert(node->child_count<80);
 
 	// std::cout << "move: " << node->child.size() << std::endl;
 	// std::cout << "end expansion" << std::endl;
@@ -377,12 +390,12 @@ double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win)
 double MyAI::star(Node *node, short color, double alpha, double beta) {
 	assert(node->isflip == true);
 
-	node->alpha = alpha;
-	node->beta = beta;
+	// node->alpha = alpha;
+	// node->beta = beta;
 
 	int total = 0;
 	short w[15];
-	for (int i=0; i<node->child.size(); ++i) {
+	for (int i=0; i<node->child_count; ++i) {
 		short piece = node->child[i]->Board[node->child[i]->move[3]][node->child[i]->move[2]];
 		w[i] = node->chessCover[piece];
 		total += w[i];
@@ -400,7 +413,7 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 	int i;
 	double t;  // score
 	
-	for (i=0; i<node->child.size()-1;) {
+	for (i=0; i<node->child_count-1;) {
 		t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max));
 		node->child[i]->score = t;
 
@@ -408,15 +421,11 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 		M[i+1] = M[i] + ((double)w[i]/total)*(t-v_max);
 
 		if (t <= A[i]) {
-			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-			node->child.clear();
-			// node->child.shrink_to_fit();
+			node->clean_child();
 			return M[i+1];
 		}
 		if (t >= B[i]) {
-			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-			node->child.clear();
-			// node->child.shrink_to_fit();
+			node->clean_child();
 			return m[i+1];
 		}
 		
@@ -428,9 +437,7 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 	// printf("i=%d ab: %.4f, %.4f\n", i, A[i], B[i]);
 	t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max));
 
-	std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-	node->child.clear();
-	// node->child.shrink_to_fit();
+	node->clean_child();
 		
 
 	m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);  // m[i] = M[i]
@@ -441,8 +448,8 @@ double MyAI::star(Node *node, short color, double alpha, double beta) {
 double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 	// color: node's color
 
-	node->alpha = alpha;
-	node->beta = beta;
+	// node->alpha = alpha;
+	// node->beta = beta;
 
 	if (node->depth >= DEPTH_LIMIT) {
 		return evaluation(node->Board, node->chessCover, -1);
@@ -450,67 +457,49 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta) {
 
 	expansion(node, color);
 
-	if (node->child.size() == 0) {
-		// node->child.shrink_to_fit();
-
+	if (node->child_count == 0) {
 		return evaluation(node->Board, node->chessCover, !color);
 	}
 	
 	if (color == Color) {  // my turn
 		double m = -999999.;
-		for (auto& child : node->child) {
-			if (!child->isflip) {
-				child->score = alphaBeta(child, !color, std::max(alpha, m), beta);
+		for (int i=0; i<node->child_count; ++i) {
+			if (!node->child[i]->isflip) {
+				node->child[i]->score = alphaBeta(node->child[i], !color, std::max(alpha, m), beta);
 			} else {
-				child->score = star(child, !color, std::max(alpha, m), beta);
+				node->child[i]->score = star(node->child[i], !color, std::max(alpha, m), beta);
 			}
-			m = std::max(m, child->score);
+			m = std::max(m, node->child[i]->score);
 			// alpha = std::max(alpha, child->score);
 
 			if (beta <= m) {
-				std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-				node->child.clear();
-				// node->child.shrink_to_fit();
+				node->clean_child();
 				return m;
 			}
 
 		}
-
-		// if (node->depth != 0) {
-			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-			node->child.clear();
-			// node->child.shrink_to_fit();
-		// }
-
+		node->clean_child();
 		return m;
 
 	} else {
 		double m = 999999.;
-		for (auto& child : node->child) {
-			if (!child->isflip) {
-				child->score = alphaBeta(child, !color, alpha, std::min(beta, m));
+		for (int i=0; i<node->child_count; ++i) {
+			if (!node->child[i]->isflip) {
+				node->child[i]->score = alphaBeta(node->child[i], !color, alpha, std::min(beta, m));
 			} else {
-				child->score = star(child, !color, alpha, std::min(beta, m));	
+				node->child[i]->score = star(node->child[i], !color, alpha, std::min(beta, m));	
 			}
 			
-			m = std::min(m, child->score);
+			m = std::min(m, node->child[i]->score);
 			// beta = std::min(beta, child->score);
 
 
 			if (m <= alpha) {
-				std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-				node->child.clear();
-				// node->child.shrink_to_fit();
+				node->clean_child();
 				return m;
 			}
 		}
-
-		// if (node->depth != 0) {
-			std::for_each( node->child.begin(), node->child.end(), []( Node* element) { delete element; });
-			node->child.clear();
-			// node->child.shrink_to_fit();
-		// }
-
+		node->clean_child();
 		return m;
 	}
 
@@ -529,35 +518,30 @@ void MyAI::generateMove(char move[6]) {
 	
 	root.depth = 0;
 	root.score = 0.;
-	root.Ntotal = 0;
+	// root.Ntotal = 0;
 
 	expansion(&root, Color);
 
-	double m = -999999.;
-	for (auto& child : root.child) {
-		if (!child->isflip) {
-			child->score = alphaBeta(child, !Color, std::max(-999999., m), 999999.);
+	short best_move[4];
+	double best = -999999.;
+	for (int i=0; i<root.child_count; ++i) {
+		if (!root.child[i]->isflip) {
+			root.child[i]->score = alphaBeta(root.child[i], !Color, std::max(-999999., best), 999999.);
 		} else {
-			child->score = star(child, !Color, std::max(-999999., m), 999999.);
+			root.child[i]->score = star(root.child[i], !Color, std::max(-999999., best), 999999.);
 		}
-		m = std::max(m, child->score);
+		// best = std::max(best, root.child[i]->score);
+
+		printf("move: (%d, %d) to (%d, %d)  score: %.4f\n", root.child[i]->move[0], root.child[i]->move[1], root.child[i]->move[2], root.child[i]->move[3], root.child[i]->score);
+
+		if (root.child[i]->score > best) {
+			best = root.child[i]->score;
+			memcpy(best_move, root.child[i]->move, 4*sizeof(short));
+		}
+
 	}
 
 	// alphaBeta(&root, Color, -999999., 999999.);
-	
-
-
-	short best_move[4];
-	double best = -99999999.;
-	for (auto& child : root.child) {
-		printf("move: (%d, %d) to (%d, %d)  score: %.4f\n", (*child).move[0], (*child).move[1], (*child).move[2], (*child).move[3], (*child).score);
-		// printf("total: %d  score: %f\n", (*child).Ntotal, (*child).score);
-
-		if ((*child).score > best) {
-			best = (*child).score;
-			memcpy(best_move, (*child).move, 4*sizeof(short));
-		}
-	}
 
 
 	printf("time: %.3f\n", (double)(clock()-begin)/CLOCKS_PER_SEC);
@@ -575,14 +559,10 @@ void MyAI::generateMove(char move[6]) {
 	sprintf(move, "%s-%s", from, to);
 	printf("move: %s\n", move);
 
-	root.Ntotal = 0;
-
 	printBoard(root.Board);
 	printf("########### End Generate Move ###########\n\n");
 
-	std::for_each( root.child.begin(), root.child.end(), []( Node* element) { delete element; });
-	root.child.clear();
-	// root.child.shrink_to_fit();
+	root.clean_child();
 
 }
 
@@ -644,20 +624,21 @@ void MyAI::printBoard(short B[10][6]) {
 }
 
 void MyAI::printTree(Node* node, FILE* pfile) {
-	if (node->depth != 0) {
-		for (int i=0; i<node->depth; ++i) fprintf(pfile, " ");
-		// if (node->parent->isflip) fprintf(pfile, " ");
-		for (int i=0; i<node->depth; ++i) fprintf(pfile, "-");
-		fprintf(pfile, "(%d, %d) to (%d, %d) (%c)| s: %.4f, a: %.4f, b: %.4f\n", node->move[0], node->move[1], node->move[2], node->move[3], toCharTable[node->Board[node->move[1]][node->move[0]]], node->score, node->alpha, node->beta);
-	}
-	else {
-		for (int i=0; i<node->depth; ++i) fprintf(pfile, " ");
-		for (int i=0; i<node->depth; ++i) fprintf(pfile, "-");
-		fprintf(pfile, "(%d, %d) to (%d, %d) | s: %.4f, a: %.4f, b: %.4f\n", node->move[0], node->move[1], node->move[2], node->move[3], node->score, node->alpha, node->beta);
-	}
-	for (auto& child : node->child) {
-		printTree(child, pfile);
-	}
+	return;
+	// if (node->depth != 0) {
+	// 	for (int i=0; i<node->depth; ++i) fprintf(pfile, " ");
+	// 	// if (node->parent->isflip) fprintf(pfile, " ");
+	// 	for (int i=0; i<node->depth; ++i) fprintf(pfile, "-");
+	// 	fprintf(pfile, "(%d, %d) to (%d, %d) (%c)| s: %.4f, a: %.4f, b: %.4f\n", node->move[0], node->move[1], node->move[2], node->move[3], toCharTable[node->Board[node->move[1]][node->move[0]]], node->score, node->alpha, node->beta);
+	// }
+	// else {
+	// 	for (int i=0; i<node->depth; ++i) fprintf(pfile, " ");
+	// 	for (int i=0; i<node->depth; ++i) fprintf(pfile, "-");
+	// 	fprintf(pfile, "(%d, %d) to (%d, %d) | s: %.4f, a: %.4f, b: %.4f\n", node->move[0], node->move[1], node->move[2], node->move[3], node->score, node->alpha, node->beta);
+	// }
+	// for (auto& child : node->child) {
+	// 	printTree(child, pfile);
+	// }
 }
 
 // return range: [0, max)
