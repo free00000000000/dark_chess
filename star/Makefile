@@ -4,6 +4,6 @@ CLEAN = rm -rf
 
 all:
 	$(CXX) *.cpp -c
-	$(CXX) main_star.o star_v1.o -o star_v1
+	$(CXX) star0_main.o star0.o -o star0
 	$(CLEAN) *.o
 

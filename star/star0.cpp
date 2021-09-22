@@ -378,9 +378,9 @@ double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win)
 	for (int i=1; i<16; ++i) {
 		if (chessCover[i] > 0) {
 			if (colorTable[i] == Color) {
-				score += pieceScore[i];
+				score += pieceScore[i]*chessCover[i];
 			} else {
-				score -= pieceScore[i];
+				score -= pieceScore[i]*chessCover[i];
 			}
 		}
 	}
@@ -409,7 +409,7 @@ double MyAI::star(Node *node, short color, double alpha, double beta, int depth)
 	for (int i=0; i<node->child_count; ++i) {
 		double score = alphaBeta(node->child[i], color, D_MIN, D_MAX, depth-1);
 		node->child[i]->score = score;
-		f_score = (double)w[i]/total * score;
+		f_score += (double)w[i]/total * score;
 	}
 	
 	return f_score;
@@ -527,7 +527,7 @@ void MyAI::generateMove(char move[6]) {
 			// best_score = best;
 		}
 
-		printf("max depth = %d\n", it_depth);
+		printf("max depth = %d, star depth = %d\n", it_depth, it_depth>>1);
 		printf("best move: (%d, %d) to (%d, %d), score: %.4f\n\n", b_move[0], b_move[1], b_move[2], b_move[3], best);
 
 		if (best == 1 || best == -1) break;

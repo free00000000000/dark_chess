@@ -388,6 +388,10 @@ double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win)
 
 double MyAI::star(Node *node, short color, double alpha, double beta, int depth) {
 	assert(node->isflip == true);
+	
+	if (time_flag) {
+		return -1;
+	}
 
 	// node->alpha = alpha;
 	// node->beta = beta;
