@@ -8,7 +8,6 @@
 #include <time.h>
 #include <algorithm> 
 #include <assert.h>
-#include <unordered_set>
 #include <string>
 #include <vector>
 
@@ -47,10 +46,10 @@ const bool canMoveTable[16][16] = {  // canMoveTable[from][to]
 const short colorTable[] = {-1, 0, 0, 0, 0, 0, 0, 0, 
     						            -1, 1, 1, 1, 1, 1, 1, 1};
 
-// const double pieceScore[] = {0, 810, 270, 90, 18, 6, 180, 1, 
+// const  long double pieceScore[] = {0, 810, 270, 90, 18, 6, 180, 1, 
 // 														 0, 810, 270, 90, 18, 6, 180, 1};
 
-const double pieceScore[] = {0, 0.125, 0.042, 0.014, 0.003, 0.001, 0.028, 0.0002, 
+const long double pieceScore[] = {0, 0.125, 0.042, 0.014, 0.003, 0.001, 0.028, 0.0002, 
 														 0, 0.125, 0.042, 0.014, 0.003, 0.001, 0.028, 0.0002};
 
 class Node {
@@ -68,12 +67,12 @@ public:
 	short move[4];  // move to this state
 	bool isflip;  // chance node = true
 
-	double score;
-	// double alpha, beta;
+	 long double score;
+	//  long double alpha, beta;
 
 	// unsigned int Ntotal; // total # of simulations
-	// double score; 
-	// double avg_score;
+	//  long double score; 
+	//  long double avg_score;
 
 	Node(){
 		child_count = 0;
@@ -113,9 +112,9 @@ public:
 // 由大到小
 class sort_indices {
 private:
-	double* mparr;
+	 long double* mparr;
 public:
-	sort_indices(double* parr) : mparr(parr) {}
+	sort_indices( long double* parr) : mparr(parr) {}
 	bool operator()(int i, int j) const { return mparr[i]>mparr[j]; }
 };
 
@@ -197,13 +196,13 @@ private:
 	void expansion(Node *node, short color);
 
 	// search
-	double alphaBeta(Node *node, short color, double alpha, double beta, int depth);
-	double star(Node *node, short color, double alpha, double beta, int depth);
+	 long double alphaBeta(Node *node, short color,  long double alpha,  long double beta, int depth);
+	 long double star(Node *node, short color,  long double alpha,  long double beta, int depth);
 
 	bool isFinish(short Board[10][6]);
 	bool isEndgame(short Board[10][6]);
 
-	double evaluation(short Board[10][6], short chessCover[16], short who_win);
+	 long double evaluation(short Board[10][6], short chessCover[16], short who_win);
 
 	void MakeMove(short move[4], short Board[10][6]);
 	void MakeFlip(short move[4], short pieceId, short Board[10][6], short chessCover[16]);

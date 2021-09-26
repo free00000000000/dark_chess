@@ -7,7 +7,7 @@
 #define TIME_LIMIT 9.5
 #define DEPTH_LIMIT 7
 #define D_MIN -999999.0
-#define D_MAX 999999
+#define D_MAX 999999.0
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
 
@@ -408,10 +408,12 @@ double MyAI::star(Node *node, short color, double alpha, double beta, int depth)
 
 	for (int i=0; i<node->child_count; ++i) {
 		double score = alphaBeta(node->child[i], color, D_MIN, D_MAX, depth-1);
+		if (depth == 5) printf("%.4f (%d)\n", score, node->child[i]->Board[node->child[i]->move[3]][node->child[i]->move[2]]);
 		node->child[i]->score = score;
 		f_score += (double)w[i]/total * score;
 	}
 	
+	if (depth == 5) printf("avg: %.4f\n", f_score);
 	return f_score;
 }
 
@@ -496,7 +498,7 @@ void MyAI::generateMove(char move[6]) {
 	root.depth = 0;
 	root.score = 0.;
 	expansion(&root, Color);
-	int it_depth = 1;
+	int it_depth = 10;
 	short best_move[4];
 	double best_score;
 	
@@ -530,7 +532,7 @@ void MyAI::generateMove(char move[6]) {
 		printf("max depth = %d, star depth = %d\n", it_depth, it_depth>>1);
 		printf("best move: (%d, %d) to (%d, %d), score: %.4f\n\n", b_move[0], b_move[1], b_move[2], b_move[3], best);
 
-		if (best == 1 || best == -1) break;
+		if (best == 1 || best == -1 || it_depth==11) break;
 
 		it_depth += 1;
 	}

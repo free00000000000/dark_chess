@@ -1,11 +1,13 @@
 #include "float.h"
-#include "star_v1.h"
+#include "star1.h"
 #include "rand.cpp"
 #include <iostream>
 
 #define SIMULATE_COUNT_PER_CHILD 10
-#define TIME_LIMIT 9.5
+#define TIME_LIMIT 9.9
 #define DEPTH_LIMIT 7
+#define D_MIN (long double) -999999.0
+#define D_MAX (long double) 999999.0
 #define GET_X(s) (s[0]-96)  //c-'a'+1
 #define GET_Y(s) (s[1]-48)  //c-'0'
 
@@ -308,7 +310,7 @@ void MyAI::expansion(Node *node, short color) {
 	// ordering 吃大子優先
 	int idx[72];
 	for (int i=0; i<72; ++i) { idx[i] = i; }
-	double moves_score[72];
+	long double moves_score[72];
 	for (int i=0; i<m; ++i) {
 		moves_score[i] = pieceScore[node->Board[moves[i][3]][moves[i][2]]];
 	}
@@ -356,9 +358,9 @@ void MyAI::expansion(Node *node, short color) {
 	// std::cout << "end expansion" << std::endl;
 }
 
-double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win) {
+long double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win) {
 
-	double score = 0;
+	long double score = 0;
 	short opColor = !Color;
 	if (who_win == Color) return 1;
 	else if (who_win == opColor) return -1;
@@ -376,9 +378,9 @@ double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win)
 	for (int i=1; i<16; ++i) {
 		if (chessCover[i] > 0) {
 			if (colorTable[i] == Color) {
-				score += pieceScore[i];
+				score += pieceScore[i]*chessCover[i];
 			} else {
-				score -= pieceScore[i];
+				score -= pieceScore[i]*chessCover[i];
 			}
 		}
 	}
@@ -386,12 +388,10 @@ double MyAI::evaluation(short Board[10][6], short chessCover[16], short who_win)
 	return score;
 }
 
-double MyAI::star(Node *node, short color, double alpha, double beta, int depth) {
+long double MyAI::star(Node *node, short color, long double alpha, long double beta, int depth) {
 	assert(node->isflip == true);
 	
-	if (time_flag) {
-		return -1;
-	}
+	if (time_flag) return -1;
 
 	// node->alpha = alpha;
 	// node->beta = beta;
@@ -404,58 +404,65 @@ double MyAI::star(Node *node, short color, double alpha, double beta, int depth)
 		total += w[i];
 	}
 
-	double v_max = 1.3;
-	double v_min = -1.;
-	double A[15], B[15];
-	double m[15], M[15];  // 目前分數
+	long double v_max = 1.3;
+	long double v_min = -1.;
+	long double A[15], B[15];
+	long double m[15], M[15];  // 目前分數
 	m[0] = v_min;
 	M[0] = v_max;
-	A[0] = ((double)total/w[0])*(alpha - v_max) + v_max;
-	B[0] = ((double)total/w[0])*(beta - v_min) + v_min;
+	A[0] = ((long double)total/w[0])*(alpha - v_max) + v_max;
+	B[0] = ((long double)total/w[0])*(beta - v_min) + v_min;
 
 	int i;
-	double t;  // score
-	
-	// printBoard(node->Board);
-	// printf("move: (%d, %d) to (%d, %d)  score: %.4f\n", node->move[0], node->move[1], node->move[2], node->move[3], node->score);
+	long double t;  // score
 
 	for (i=0; i<node->child_count-1;) {
-		// std::cout << "aaaa" << std::endl;
+		// t = alphaBeta(node->child[i], color, D_MIN, D_MAX, depth-1);
 		t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max), depth-1);
+		// if (depth == 5) printf("%.4f (%d)\n", t, node->child[i]->Board[node->child[i]->move[3]][node->child[i]->move[2]]);
 		node->child[i]->score = t;
 
-		m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);
-		M[i+1] = M[i] + ((double)w[i]/total)*(t-v_max);
+		m[i+1] = m[i] + ((long double)w[i]/total)*(t-v_min);
+		M[i+1] = M[i] + ((long double)w[i]/total)*(t-v_max);
 
 		if (t <= A[i]) {
+			// std::cout << "t: " << t << std::endl;
+			// printf("a: %.4f, b: %.4f , alpha: %.4f, beta: %.4f ", A[i], B[i], alpha, beta);
+			// std::cout << "aaaa " << M[i+1] << std::endl;
 			return M[i+1];
 		}
 		if (t >= B[i]) {
+			// printf("a: %.4f, b: %.4f , alpha: %.4f, beta: %.4f", A[i], B[i], alpha, beta);
+			// std::cout << "bbbb " << M[i+1] << std::endl;
 			return m[i+1];
 		}
 		
 		i += 1;
-		A[i] = ((double)w[i-1]/w[i])*(A[i-1] - t) + v_max;
-		B[i] = ((double)w[i-1]/w[i])*(B[i-1] - t) + v_min;
+		A[i] = ((long double)w[i-1]/w[i])*(A[i-1] - t) + v_max;
+		B[i] = ((long double)w[i-1]/w[i])*(B[i-1] - t) + v_min;
 	}
 	assert(i < 15);
-	// printf("i=%d ab: %.4f, %.4f\n", i, A[i], B[i]);
+	// t = alphaBeta(node->child[i], color, D_MIN, D_MAX, depth-1);		
 	t = alphaBeta(node->child[i], color, std::max(A[i], v_min), std::min(B[i], v_max), depth-1);		
+	// if (depth == 5) {
+	// 	printf("i=%d ab: %.4f, %.4f\n", i, A[i], B[i]);
+	// 	printf("%.4f (%d)\n", t, node->child[i]->Board[node->child[i]->move[3]][node->child[i]->move[2]]);
+	// }
 
-	m[i+1] = m[i] + ((double)w[i]/total)*(t-v_min);  // m[i] = M[i]
+	m[i+1] = m[i] + ((long double)w[i]/total)*(t-v_min);  // m[i] = M[i]
 	
+	// if (depth == 5) printf("avg: %.4f\n", m[i+1]);
+
 	return m[i+1];
 }
 
-double MyAI::alphaBeta(Node *node, short color, double alpha, double beta, int depth) {
+long double MyAI::alphaBeta(Node *node, short color, long double alpha, long double beta, int depth) {
 	// color: node's color
 
 	// node->alpha = alpha;
 	// node->beta = beta;
 
-	if (time_flag) {
-		return -1;
-	}
+	if (time_flag) return -1;
 
 	if ((double)(clock() - begin) / CLOCKS_PER_SEC >= TIME_LIMIT) {
 		time_flag = true;
@@ -473,7 +480,7 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta, int d
 	}
 	
 	if (color == Color) {  // my turn
-		double m = -999999.;
+		long double m = D_MIN;
 		for (int i=0; i<node->child_count; ++i) {
 			if (!node->child[i]->isflip) {
 				node->child[i]->score = alphaBeta(node->child[i], !color, std::max(alpha, m), beta, depth-1);
@@ -492,7 +499,7 @@ double MyAI::alphaBeta(Node *node, short color, double alpha, double beta, int d
 		return m;
 
 	} else {
-		double m = 999999.;
+		long double m = D_MAX;
 		for (int i=0; i<node->child_count; ++i) {
 			if (!node->child[i]->isflip) {
 				node->child[i]->score = alphaBeta(node->child[i], !color, alpha, std::min(beta, m), depth-1);
@@ -530,27 +537,31 @@ void MyAI::generateMove(char move[6]) {
 	root.depth = 0;
 	root.score = 0.;
 	expansion(&root, Color);
-	int it_depth = 1;
+	int it_depth = 2;
 	short best_move[4];
-	double best_score;
+	long double best_score;
 	
 	while ((double)(clock() - begin) / CLOCKS_PER_SEC < TIME_LIMIT) {
 
-		double best = -999999.;
+		long double best = D_MIN;
 		short b_move[4];
 
 		for (int i=0; i<root.child_count; ++i) {
 			if (!root.child[i]->isflip) {
-				root.child[i]->score = alphaBeta(root.child[i], !Color, std::max(-999999., best), 999999., it_depth-1);
+				root.child[i]->score = alphaBeta(root.child[i], !Color, std::max(D_MIN, best), D_MAX, it_depth-1);
 			} else {
-				root.child[i]->score = star(root.child[i], !Color, std::max(-999999., best), 999999., it_depth>>1);
+				root.child[i]->score = star(root.child[i], !Color, std::max(D_MIN, best), D_MAX, it_depth>>1);
 			}
 			
 
-			printf("move: (%d, %d) to (%d, %d)  score: %.4f\n", root.child[i]->move[0], root.child[i]->move[1], root.child[i]->move[2], root.child[i]->move[3], root.child[i]->score);
+			__mingw_printf("move: (%d, %d) to (%d, %d)  score: %Lf\n", root.child[i]->move[0], root.child[i]->move[1], root.child[i]->move[2], root.child[i]->move[3], root.child[i]->score);
+			fflush(stdout);
 
 			if (root.child[i]->score > best) {
+				// printf("%.30f ", best);
 				best = root.child[i]->score;
+				// printf("%.30f\n", best);
+				// std::cout << best << std::endl;
 				memcpy(b_move, root.child[i]->move, 4*sizeof(short));
 			}
 
@@ -561,12 +572,14 @@ void MyAI::generateMove(char move[6]) {
 			// best_score = best;
 		}
 
-		printf("max depth = %d\n", it_depth);
-		printf("best move: (%d, %d) to (%d, %d), score: %.4f\n\n", b_move[0], b_move[1], b_move[2], b_move[3], best);
+		printf("max depth = %d, star depth = %d\n", it_depth, it_depth>>1);
+		__mingw_printf("best move: (%d, %d) to (%d, %d), score: %Lf\n\n", b_move[0], b_move[1], b_move[2], b_move[3], best);
+		fflush(stdout);
 
-		if (best == 1 || best == -1) break;
 
-		it_depth += 1;
+		if (best == 1 || best == -1 || it_depth==11) break;
+
+		it_depth += 2;
 	}
 	
 

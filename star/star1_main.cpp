@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
-#include "star_v1.h"
+#include "star1.h"
 
 // commands enumerate
 enum COMMANDS{
