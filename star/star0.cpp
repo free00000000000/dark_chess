@@ -498,7 +498,7 @@ void MyAI::generateMove(char move[6]) {
 	root.depth = 0;
 	root.score = 0.;
 	expansion(&root, Color);
-	int it_depth = 10;
+	int it_depth = 2;
 	short best_move[4];
 	double best_score;
 	
@@ -534,7 +534,7 @@ void MyAI::generateMove(char move[6]) {
 
 		if (best == 1 || best == -1 || it_depth==11) break;
 
-		it_depth += 1;
+		it_depth += 2;
 	}
 	
 
